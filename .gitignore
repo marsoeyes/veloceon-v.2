@@ -1,0 +1,7 @@
+/target
+**/*.rs.bk
+.venv/
+__pycache__/
+spr-shards-*/
+*.json.tmp
+results-*.json

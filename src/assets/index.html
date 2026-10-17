@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seed Phrase Recoverer</title>
+<link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">✦</span>
+      <div>
+        <div class="brand-title">Seed Phrase</div>
+        <div class="brand-sub">Recoverer <span id="version">v—</span></div>
+      </div>
+    </div>
+    <nav id="nav">
+      <button class="nav-item active" data-view="dashboard"><span>◈</span> Dashboard</button>
+      <button class="nav-item" data-view="recover"><span>⛏</span> Recover</button>
+      <button class="nav-item" data-view="derive"><span>⇄</span> Derive</button>
+      <button class="nav-item" data-view="results"><span>☰</span> Results</button>
+      <button class="nav-item" data-view="wordlists"><span>✎</span> Wordlists</button>
+      <button class="nav-item" data-view="settings"><span>⚙</span> Settings</button>
+      <button class="nav-item" data-view="api"><span>⌘</span> API</button>
+    </nav>
+    <div class="session">
+      <div class="session-head">Session Overview</div>
+      <dl>
+        <dt>Status</dt><dd id="s-status">Idle</dd>
+        <dt>Threads</dt><dd id="s-threads">—</dd>
+        <dt>Wordlist</dt><dd id="s-language">—</dd>
+        <dt>Combinations</dt><dd id="s-combos">—</dd>
+        <dt>Derivations</dt><dd id="s-derivs">—</dd>
+        <dt>Started</dt><dd id="s-elapsed">—</dd>
+      </dl>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Recovery Console</div>
+      <div class="topbar-actions">
+        <span class="pill" id="status-pill"><i class="dot"></i><span id="status-text">Idle</span></span>
+        <button class="btn btn-ghost" id="btn-pause">Pause</button>
+        <button class="btn btn-danger" id="btn-stop">Stop</button>
+        <button class="btn btn-ghost" id="btn-export">Export JSON</button>
+      </div>
+    </header>
+
+    <section class="view active" id="view-dashboard">
+      <div class="cards">
+        <div class="card stat">
+          <div class="stat-label">Candidates Checked</div>
+          <div class="stat-value" id="k-checked">0</div>
+          <canvas class="spark" data-series="checked"></canvas>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Seeds Derived</div>
+          <div class="stat-value" id="k-seeds">0</div>
+          <canvas class="spark" data-series="seeds"></canvas>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Matches Found</div>
+          <div class="stat-value" id="k-found">0</div>
+          <canvas class="spark" data-series="found"></canvas>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Speed</div>
+          <div class="stat-value" id="k-rate">0 <small>/s</small></div>
+          <canvas class="spark" data-series="rate"></canvas>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Elapsed</div>
+          <div class="stat-value" id="k-elapsed">0s</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">ETA</div>
+          <div class="stat-value" id="k-eta">—</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">Recovery Progress</div>
+          <div class="progress-meta">
+            <div><span class="muted">Current speed</span><b id="p-rate">0</b> /s</div>
+            <div><span class="muted">Elapsed</span><b id="p-elapsed">0s</b></div>
+            <div><span class="muted">ETA</span><b id="p-eta">—</b></div>
+          </div>
+          <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+          <div class="progress-meta">
+            <div><span class="muted">Checked</span><b id="p-checked">0</b></div>
+            <div><span class="muted">Total</span><b id="p-total">0</b></div>
+            <div><span class="muted">Status</span><b id="p-status">idle</b></div>
+          </div>
+          <canvas id="chart" height="220"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Matches</div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>#</th><th>Phrase</th><th>Network</th><th>Address</th><th></th></tr></thead>
+              <tbody id="hits-body"><tr class="empty"><td colspan="5">No matches yet</td></tr></tbody>
+            </table>
+          </div>
+          <div class="hits-foot"><span id="hits-count">0 matches</span><button class="btn btn-ghost btn-sm" id="btn-copy-all">Copy all phrases</button></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">Activity</div>
+          <div class="log" id="log"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">Matches by network</div>
+          <div class="donut-row">
+            <canvas id="donut" width="190" height="190"></canvas>
+            <ul class="legend" id="donut-legend"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-recover">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">Seed Phrase Recovery</div>
+          <label class="field">
+            <span>Phrase template — use <code>?</code> for the words you cannot remember</span>
+            <textarea id="in-phrase" rows="4" spellcheck="false"
+              placeholder="lucky ? ? ? photo you ? myself"></textarea>
+          </label>
+          <div class="chips" id="phrase-chips"></div>
+          <div class="row">
+            <label class="field grow">
+              <span>Wordlist</span>
+              <select id="in-language">
+                <option value="english">English (2048 words)</option>
+                <option value="spanish">Spanish</option>
+                <option value="french">French</option>
+                <option value="italian">Italian</option>
+                <option value="portuguese">Portuguese</option>
+                <option value="czech">Czech</option>
+                <option value="korean">Korean</option>
+                <option value="japanese">Japanese</option>
+                <option value="chinese-simplified">Chinese (simplified)</option>
+                <option value="chinese-traditional">Chinese (traditional)</option>
+              </select>
+            </label>
+            <label class="field grow">
+              <span>BIP39 passphrase (optional)</span>
+              <input id="in-passphrase" type="text" placeholder="25th word" />
+            </label>
+          </div>
+
+          <div class="card-head sub">Target addresses — your own known addresses</div>
+          <label class="field">
+            <span>One per line, <code>network:address</code></span>
+            <textarea id="in-targets" rows="3" spellcheck="false"
+              placeholder="evm:0x9858EfFD232B4033E47d90003D41EC34EcaEda94&#10;btc:1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA"></textarea>
+          </label>
+          <div class="row">
+            <label class="field grow">
+              <span>Match mode</span>
+              <select id="in-match">
+                <option value="exact">Exact address</option>
+                <option value="prefix">Address prefix</option>
+                <option value="suffix">Address suffix</option>
+                <option value="contains">Contains</option>
+              </select>
+            </label>
+            <label class="field grow">
+              <span>Addresses per path</span>
+              <input id="in-breadth" type="number" min="1" max="20" value="1" />
+            </label>
+            <label class="field grow">
+              <span>Threads (0 = all cores)</span>
+              <input id="in-threads" type="number" min="0" value="0" />
+            </label>
+          </div>
+          <label class="field">
+            <span>Derivation paths (optional, one per line — defaults are used when empty)</span>
+            <textarea id="in-paths" rows="2" spellcheck="false" placeholder="m/44'/60'/0'/0/0"></textarea>
+          </label>
+          <div class="row between">
+            <label class="check"><input type="checkbox" id="in-all" /> keep searching after a match</label>
+            <button class="btn btn-ghost" id="btn-analyze">Analyze</button>
+            <button class="btn btn-primary" id="btn-start">Start Recovery</button>
+          </div>
+          <div class="notice" id="analyze-out"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Networks</div>
+          <div class="chips big" id="network-chips"></div>
+          <div class="card-head sub">What this does</div>
+          <ol class="notes">
+            <li>Every candidate phrase is rebuilt from your known words and the checksum is verified (removes 93.75–99.6 % of combinations instantly).</li>
+            <li>Surviving candidates are stretched with PBKDF2-HMAC-SHA512 (2048 rounds) exactly like BIP39 requires.</li>
+            <li>The seed is derived along the configured paths for every selected network and compared against <em>your</em> addresses.</li>
+            <li>Nothing is sent anywhere: no RPC, no balance scanning, no telemetry.</li>
+          </ol>
+          <div class="card-head sub">Show the plan first</div>
+          <p class="muted small">Use <code>spr recover --dry-run</code> in the terminal, or press <b>Analyze</b>, to see the candidate space before spending CPU time.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-derive">
+      <div class="card">
+        <div class="card-head">Derive addresses from a complete phrase</div>
+        <p class="muted small">Verifies the tool works on your machine and produces a derivation sheet for backups.</p>
+        <label class="field">
+          <span>Mnemonic</span>
+          <textarea id="d-phrase" rows="3" spellcheck="false"></textarea>
+        </label>
+        <div class="row">
+          <label class="field grow">
+            <span>Wordlist</span>
+            <select id="d-language">
+              <option value="english">English</option>
+              <option value="spanish">Spanish</option>
+              <option value="french">French</option>
+              <option value="italian">Italian</option>
+              <option value="portuguese">Portuguese</option>
+              <option value="czech">Czech</option>
+              <option value="korean">Korean</option>
+              <option value="japanese">Japanese</option>
+              <option value="chinese-simplified">Chinese (simplified)</option>
+              <option value="chinese-traditional">Chinese (traditional)</option>
+            </select>
+          </label>
+          <label class="field grow"><span>Passphrase</span><input id="d-passphrase" type="text" /></label>
+          <label class="field grow"><span>Networks</span><input id="d-network" type="text" value="all" /></label>
+          <button class="btn btn-primary" id="btn-derive">Derive</button>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Network</th><th>Path</th><th>Address</th><th></th></tr></thead>
+            <tbody id="derive-body"><tr class="empty"><td colspan="4">Nothing derived yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-results">
+      <div class="card">
+        <div class="card-head">Recovered phrases</div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Phrase</th><th>Network</th><th>Path</th><th>Address</th><th>Target</th><th></th></tr></thead>
+            <tbody id="results-body"><tr class="empty"><td colspan="6">No results yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-wordlists">
+      <div class="card">
+        <div class="card-head">Wordlists</div>
+        <p class="muted small">All BIP39 lists are embedded in the binary; nothing is downloaded.</p>
+        <div class="row">
+          <label class="field grow"><span>Language</span><input id="w-language" type="text" value="english" /></label>
+          <label class="field grow"><span>Word</span><input id="w-word" type="text" placeholder="abandon" /></label>
+          <button class="btn btn-ghost" id="btn-wcheck">Check</button>
+        </div>
+        <div class="notice" id="w-out">Available: english, spanish, french, italian, portuguese, czech, korean, japanese, chinese-simplified, chinese-traditional — 2048 words each.</div>
+      </div>
+    </section>
+
+    <section class="view" id="view-settings">
+      <div class="card">
+        <div class="card-head">Settings</div>
+        <label class="field"><span>Default threads (0 = all cores)</span><input id="set-threads" type="number" value="0" min="0" /></label>
+        <label class="field"><span>Safety cap for candidate space (0 = none)</span><input id="set-cap" type="number" value="0" min="0" /></label>
+        <label class="field"><span>API base path</span><input type="text" value="/api" readonly /></label>
+        <p class="muted small">Settings are stored in your browser only.</p>
+      </div>
+    </section>
+
+    <section class="view" id="view-api">
+      <div class="card">
+        <div class="card-head">HTTP API</div>
+        <pre class="code">curl -s localhost:8080/api/status | jq
+
+curl -s localhost:8080/api/start -H 'content-type: application/json' -d '{
+  "phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon ?",
+  "networks": ["evm"],
+  "targets": ["evm:0x9858EfFD232B4033E47d90003D41EC34EcaEda94"],
+  "threads": 4
+}'
+
+curl -s localhost:8080/api/controls -d '{"action":"stop"}'
+curl -s localhost:8080/api/events   # server-sent events with live progress</pre>
+      </div>
+    </section>
+
+    <footer class="statusbar">
+      <span>Workers <b id="b-threads">—</b></span>
+      <span>Speed <b id="b-rate">0</b>/s</span>
+      <span>Checked <b id="b-checked">0</b></span>
+      <span>Seeds <b id="b-seeds">0</b></span>
+      <span class="grow"></span>
+      <span class="conn"><i class="dot"></i> engine <b>local</b></span>
+    </footer>
+  </main>
+</div>
+<script src="/assets/app.js"></script>
+</body>
+</html>
